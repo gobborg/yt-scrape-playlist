@@ -26,9 +26,9 @@ func makePlaylist(ytClient *youtube.Service) (*youtube.Playlist, error) {
 }
 
 // POPULATE THAT NEW PLAYLIST
-func addToPlaylist(ytClient *youtube.Service, playlist *youtube.Playlist, slugs []string, i int) {
+func addToPlaylist(ytClient *youtube.Service, playlist *youtube.Playlist, slugs []string, i int) error {
 	if i >= len(slugs) {
-		return
+		return nil
 	}
 	var j int64 //type conv for Snippet.Position
 	j = int64(i)
@@ -51,20 +51,19 @@ func addToPlaylist(ytClient *youtube.Service, playlist *youtube.Playlist, slugs 
 	case sendTracks.HTTPStatusCode == 409 && retries > 0:
 		retries--
 		time.Sleep(delay * 2)
-		addToPlaylist(ytClient, playlist, slugs, i+1)
+		return addToPlaylist(ytClient, playlist, slugs, i+1)
 	case sendTracks.HTTPStatusCode == 409 && retries == 0:
-		fmt.Printf("Error 409 after 5 tries. Quitting.")
-		return
+		return fmt.Errorf("Error 409 after 5 tries. Quitting.")
 	case sendTracks.HTTPStatusCode == 200:
 		retries = 5
 		time.Sleep(delay)
-		addToPlaylist(ytClient, playlist, slugs, i+1)
+		return addToPlaylist(ytClient, playlist, slugs, i+1)
 	default:
 		if err != nil {
-			fmt.Printf("Error sending tracks: %v", err)
-			return
+			return fmt.Errorf("Error sending tracks: %v", err)
 		}
 	}
+	return nil
 }
 
 func main() {
